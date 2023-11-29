@@ -1,0 +1,13 @@
+.table{
+    
+    display: table;
+}
+.header_table{
+    display:inline-block; 
+}
+
+
+.id{
+    width: 20px;
+}
+
