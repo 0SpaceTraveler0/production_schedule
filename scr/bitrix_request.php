@@ -135,6 +135,7 @@ function getListOrder($filter): array
         break;
       default:
         $result[$key]['RUNNING_METERS'] = $result[$key]['KOL_VO_PLAN_SHTUK_VALUE'] / 1 * $result[$key]['DLINA_ZAGOTOVKI_VALUE'] / 1000;
+        $qwe =1;
         break;
     }
     change_key($key, $result[$key]['ID'], $result);
