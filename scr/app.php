@@ -53,7 +53,13 @@ function app()
 
     deleteAllDeal(getDeal());
     addDeal($allCombinations);
-
+    
+    usort($resultAr, function ($a, $b) {
+        return ($b['withMaterial'] - $a['withMaterial']) // status ascending
+            ?: strcmp($a['material'], $b['material']) // start ascending
+            //?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
+        ;
+    });
     return $resultAr;
 }
 function calculation(array $arOrder, array $allWithMaterials)
@@ -207,13 +213,6 @@ function filterArResult(array $allCombinations, array $arOrder): array
     foreach ($allCombinations as $key => &$value) {
         filter($allCombinations, $arOrder, $key, $value, $totalMileage);
     }
-
-    usort($allCombinations, function ($a, $b) {
-        return ($b['withMaterial'] - $a['withMaterial']) // status ascending
-            ?: strcmp($a['material'], $b['material']) // start ascending
-            //?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
-        ;
-    });
     return $allCombinations;
 }
 function getRaningMetrs($KOL_VO_PLAN_SHTUK_VALUE, $KOL_VO_NA_SHTAMPE_VALUE, $DLINA_ZAGOTOVKI_VALUE, $TIP_UPAKOVKI_VALUE)
