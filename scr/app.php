@@ -270,13 +270,13 @@ function putValueMadedAndLeft($value, &$arr)
         ];
     }
 }
-function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage, $flag = true)
+function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
 {
     if ($arOrder[$value['order1_id']]['RUNNING_METERS'] === 0 or $arOrder[$value['order2_id']]['RUNNING_METERS'] === 0) {
         unset($allCombinations[$key]);
         return;
     }
-    if ($totalMileage >= 17000 and $flag == true) {
+    if ($totalMileage >= 17000) {
         unset($allCombinations[$key]);
         return;
     }
