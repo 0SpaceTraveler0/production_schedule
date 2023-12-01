@@ -297,7 +297,7 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage, $fl
     if (isset($value['trueEffectiveness'])) {
         $value['effectiveness'] = $value['trueEffectiveness'];
     }
-    //$value['effectiveness'] = $value['effectiveness'] . '%';
+    $value['effectiveness'] = $value['effectiveness'] . '%';
 
     $lengthorder1 = $arOrder[$value['order1_id']]['RUNNING_METERS'] / $value['countOrder1'];
 
