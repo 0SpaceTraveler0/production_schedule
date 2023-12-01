@@ -51,8 +51,8 @@ function app()
     }
     updateListOrder($arMadedAndLeft);
 
-    // deleteAllDeal(getDeal());
-    // addDeal($allCombinations);
+    deleteAllDeal(getDeal());
+    addDeal($allCombinations);
 
     return $resultAr;
 }
@@ -135,7 +135,6 @@ function calculatingEfficiency($combination, $orderWidth,  $countOrder,  $withMa
     $combination['effectiveness'] = round($effectiveness, 2);
     return $combination;
 }
-
 function completionLengthOfRolls($allCombinations, $lengthOfRolls, &$arOrder)
 {
     foreach ($allCombinations as $key => $value) {
@@ -155,8 +154,6 @@ function completionLengthOfRolls($allCombinations, $lengthOfRolls, &$arOrder)
 
     return $lengthOfRolls;
 }
-
-
 function swapCombination(&$allCombinations, $arOrder)
 {
     $lengthOfRolls = [
@@ -170,7 +167,6 @@ function swapCombination(&$allCombinations, $arOrder)
     echo '<pre>';
     print_r($lengthOfRolls);
     echo '</pre>';
-    $flagMinRolls = true;
     global $allWithMaterials;
     $lengthOfRolls = getMinRolls($lengthOfRolls); // массив с рулонами/ форматами меньше 1000
     $CombinationMinLendthOfRolls = getCominationByWidth($allCombinations, $lengthOfRolls); // массив с совмещениями рулонов менее 1000
@@ -198,7 +194,6 @@ function swapCombination(&$allCombinations, $arOrder)
 
     return $CombinationsRecalculation;
 }
-
 function filterArResult(array $allCombinations, array $arOrder): array
 {
     global $width_conditions;
@@ -221,7 +216,6 @@ function filterArResult(array $allCombinations, array $arOrder): array
     });
     return $allCombinations;
 }
-
 function getRaningMetrs($KOL_VO_PLAN_SHTUK_VALUE, $KOL_VO_NA_SHTAMPE_VALUE, $DLINA_ZAGOTOVKI_VALUE, $TIP_UPAKOVKI_VALUE)
 {
     switch ($TIP_UPAKOVKI_VALUE) {
@@ -231,8 +225,6 @@ function getRaningMetrs($KOL_VO_PLAN_SHTUK_VALUE, $KOL_VO_NA_SHTAMPE_VALUE, $DLI
             return $KOL_VO_PLAN_SHTUK_VALUE / 1 * $DLINA_ZAGOTOVKI_VALUE / 1000;
     }
 }
-
-
 function getMinRolls($lengthOfRolls)
 {
     foreach ($lengthOfRolls as $key => $length) {
@@ -242,7 +234,6 @@ function getMinRolls($lengthOfRolls)
     }
     return $lengthOfRolls;
 }
-
 function getCominationByWidth($allCombinations, $lengthOfRolls)
 {
     foreach ($allCombinations as $key => $combination) {
@@ -252,7 +243,6 @@ function getCominationByWidth($allCombinations, $lengthOfRolls)
     }
     return $arr;
 }
-
 function putValueMadedAndLeft($value, &$arr)
 {
     if ($value['order2'] === null) {
