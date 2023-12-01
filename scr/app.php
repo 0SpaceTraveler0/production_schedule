@@ -213,12 +213,12 @@ function filterArResult(array $allCombinations, array $arOrder): array
         filter($allCombinations, $arOrder, $key, $value, $totalMileage);
     }
 
-    /* usort($allCombinations, function ($a, $b) {
+    usort($allCombinations, function ($a, $b) {
         return ($b['withMaterial'] - $a['withMaterial']) // status ascending
             ?: strcmp($a['material'], $b['material']) // start ascending
             //?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
         ;
-    }); */
+    });
     return $allCombinations;
 }
 
