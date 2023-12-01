@@ -34,11 +34,27 @@ function app()
     $arAllOrder += $arUnfulfilledOrder;
 
     $allCombinations = calculation($arAllOrder, $allWithMaterials);
+    $allCombinations = filterArResult($allCombinations, $arAllOrder);
+    $swapCombination = swapCombination($allCombinations, $arAllOrder);
+    $resultAr = array_merge($allCombinations, $swapCombination);
+    $lengthOfRolls = [
+        '1400' => 0,
+        '1260' => 0,
+        '1050' => 0,
+        '840' => 0
+    ];
+
+    //обновление списка граффик производства
+    $arMadedAndLeft = [];
+    foreach ($resultAr as $key => &$value) {
+        putValueMadedAndLeft($value, $arMadedAndLeft);
+    }
+    updateListOrder($arMadedAndLeft);
 
     // deleteAllDeal(getDeal());
     // addDeal($allCombinations);
 
-    return $allCombinations;
+    return $resultAr;
 }
 function calculation(array $arOrder, array $allWithMaterials)
 {
@@ -81,12 +97,8 @@ function calculation(array $arOrder, array $allWithMaterials)
             }
         }
     }
-
-    $resultAr = filterArResult($allCombinations, $arOrder);
-
-    return $resultAr;
+    return $allCombinations;
 }
-
 function calculationForOne(&$allCombinations, $allWithMaterials, $order)
 {
     global $width_conditions;
@@ -113,14 +125,14 @@ function calculatingEfficiency($combination, $orderWidth,  $countOrder,  $withMa
     // flag -  применять вилку эффективности или нет
     $mergeWidth = ($orderWidth * $countOrder) + ($order2With * $countOrder2);
     $effectiveness = ($mergeWidth / $withMaterial) * 100;
-    if (isset($width_conditions[$withMaterial]) and $flag == true) {
+    /* if (isset($width_conditions[$withMaterial]) and $flag == true) {
         $eff = $effectiveness - $width_conditions[$withMaterial];
         $combination['effectiveness'] = round($eff, 2);
         $combination['trueEffectiveness'] = round($effectiveness, 2);
     } else {
         $combination['effectiveness'] = round($effectiveness, 2);
-    }
-    //$combination['effectiveness'] = round($effectiveness, 2);
+    } */
+    $combination['effectiveness'] = round($effectiveness, 2);
     return $combination;
 }
 
@@ -137,14 +149,54 @@ function completionLengthOfRolls($allCombinations, $lengthOfRolls, &$arOrder)
             $arOrder[$value['order2_id']]['RUNNING_METERS'] = $lengthorder1;
         }
 
-
-        //$remaining_length = ceil($lengthorder1 - $lengthorder2);
         $q = max($lengthorder1, $lengthorder2);
-
         $lengthOfRolls[$value['withMaterial']] += $q;
     }
 
     return $lengthOfRolls;
+}
+
+
+function swapCombination(&$allCombinations, $arOrder)
+{
+    $lengthOfRolls = [
+        '1400' => 0,
+        '1260' => 0,
+        '1050' => 0,
+        '840' => 0
+    ];
+    $lengthOfRolls = completionLengthOfRolls($allCombinations, $lengthOfRolls, $arOrder);
+
+    echo '<pre>';
+    print_r($lengthOfRolls);
+    echo '</pre>';
+    $flagMinRolls = true;
+    global $allWithMaterials;
+    $lengthOfRolls = getMinRolls($lengthOfRolls); // массив с рулонами/ форматами меньше 1000
+    $CombinationMinLendthOfRolls = getCominationByWidth($allCombinations, $lengthOfRolls); // массив с совмещениями рулонов менее 1000
+    $arOrderRecalculation = [];
+    foreach ($CombinationMinLendthOfRolls as $key => $value) {
+        $arOrder[$value['order1_id']]['RUNNING_METERS'] = getRaningMetrs(
+            $value['main_made'],
+            $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE'],
+            $arOrder[$value['order1_id']]['DLINA_ZAGOTOVKI_VALUE'],
+            $arOrder[$value['order1_id']]['TIP_UPAKOVKI_VALUE']
+        );
+        $arOrder[$value['order2_id']]['RUNNING_METERS'] = getRaningMetrs(
+            $value['combined_made'],
+            $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE'],
+            $arOrder[$value['order2_id']]['DLINA_ZAGOTOVKI_VALUE'],
+            $arOrder[$value['order2_id']]['TIP_UPAKOVKI_VALUE']
+        );
+        unset($allCombinations[$key]);
+        $arOrderRecalculation[$value['order1_id']] =  $arOrder[$value['order1_id']];
+        $arOrderRecalculation[$value['order2_id']] =  $arOrder[$value['order2_id']];
+    }
+    $difmaterials = array_diff($allWithMaterials, array_keys($lengthOfRolls));
+    $CombinationsRecalculation = calculation($arOrderRecalculation,$difmaterials);
+    $CombinationsRecalculation = filterArResult($CombinationsRecalculation, $arOrderRecalculation);
+
+    return $CombinationsRecalculation;
 }
 
 function filterArResult(array $allCombinations, array $arOrder): array
@@ -156,112 +208,35 @@ function filterArResult(array $allCombinations, array $arOrder): array
     });
 
     $totalMileage = 0;
-    $lengthOfRolls = [
-        '1400' => 0,
-        '1260' => 0,
-        '1050' => 0,
-        '840' => 0
-    ];
 
     foreach ($allCombinations as $key => &$value) {
         filter($allCombinations, $arOrder, $key, $value, $totalMileage);
     }
 
-/*     $lengthOfRolls = completionLengthOfRolls($allCombinations, $lengthOfRolls, $arOrder);
-
-    echo '<pre>';
-    print_r($lengthOfRolls);
-    echo '</pre>'; */
-    $flagMinRolls = true;
-    //global $allWithMaterials;
-    /* while ($flagMinRolls) {
-        $lengthOfRolls = getMinRolls($lengthOfRolls); // массив с рулонами/ форматами меньше 1000
-        if($lengthOfRolls) {
-            $flagMinRolls = false;
-            break;
-        }
-        foreach ($lengthOfRolls as $key => $length) {
-            if ($length > 1000) {
-                $flagMinRolls = false;
-            }
-        }
-        $CombinationWithFullLendthOfRolls = getCominationByWidth($allCombinations, $lengthOfRolls); // массив с совмещениями рулонов больше 1000
-        if ($CombinationWithFullLendthOfRolls) {
-            $last_element = getMinCombination($CombinationWithFullLendthOfRolls, $allCombinations);
-            foreach ($lengthOfRolls as $withMaterial => $value) {
-
-                $orderWidth = $arOrder[$last_element['order1_id']]['RAZVERTKA_SHIRINA_PO_NOZHAM_VALUE'];
-                $order2With = $arOrder[$last_element['order2_id']]['RAZVERTKA_SHIRINA_PO_NOZHAM_VALUE'];
-                $last_element['withMaterial'] = $withMaterial;
-                if ($orderWidth > $withMaterial or $orderWidth + $order2With > $withMaterial) {
-                    continue;
-                }
-                for ($i = 1; $i < 3; $i++) {
-                    if ($orderWidth * $i > $withMaterial or $orderWidth * $i + $order2With > $withMaterial) {
-                        continue;
-                    }
-                    $j = 1;
-                    while ($j * $order2With < $withMaterial - ($orderWidth * $i)) {
-                        $allCombinationsLast[] = calculatingEfficiency($last_element, $orderWidth,  $i,  $withMaterial, false, $order2With, $j);
-                        $j++;
-                    }
-                }
-                $i = 1;
-                while ($orderWidth * $i <= $withMaterial) {
-                    $allCombinationsLast[] = calculatingEfficiency($last_element, $orderWidth,  $i,  $withMaterial, false, $order2With, $j);
-                    $i++;
-                }
-            }
-            
-            foreach ($allCombinationsLast as $key => &$value) {
-                filter($allCombinationsLast, $arOrder, $key, $value, $totalMileage, $flag = false);
-            }
-            if ($allCombinationsLast) {
-                $allCombinations = array_merge($allCombinations, $allCombinationsLast);
-            }
-
-            $lengthOfRolls = completionLengthOfRolls($allCombinations, $lengthOfRolls, $arOrder);
-            echo '<pre>';
-            print_r($lengthOfRolls);
-            echo '</pre>';
-        }
-    } */
-
-
-    /* $arMadedAndLeft = [];
-    foreach ($allCombinations as $key => &$value) {
-        putValueMadedAndLeft($value, $arMadedAndLeft);
-    } */
-    //updateListOrder($arMadedAndLeft);
-    usort($allCombinations, function ($a, $b) {
+    /* usort($allCombinations, function ($a, $b) {
         return ($b['withMaterial'] - $a['withMaterial']) // status ascending
             ?: strcmp($a['material'], $b['material']) // start ascending
             //?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
         ;
-    });
+    }); */
     return $allCombinations;
 }
 
-function getMinCombination(&$CombinationWithFullLendthOfRolls, &$allCombinations)
+function getRaningMetrs($KOL_VO_PLAN_SHTUK_VALUE, $KOL_VO_NA_SHTAMPE_VALUE, $DLINA_ZAGOTOVKI_VALUE, $TIP_UPAKOVKI_VALUE)
 {
-    $mineffeectiv = 100;
-    $keyMinEff = 0;
-    foreach ($CombinationWithFullLendthOfRolls as $key => $item) {
-        if ($mineffeectiv > $item['effectiveness']) {
-            $mineffeectiv = $item['effectiveness'];
-            $keyMinEff = $key;
-        }
+    switch ($TIP_UPAKOVKI_VALUE) {
+        case 62:
+            return $KOL_VO_PLAN_SHTUK_VALUE / $KOL_VO_NA_SHTAMPE_VALUE * $DLINA_ZAGOTOVKI_VALUE / 1000;
+        default:
+            return $KOL_VO_PLAN_SHTUK_VALUE / 1 * $DLINA_ZAGOTOVKI_VALUE / 1000;
     }
-    $last_element = $CombinationWithFullLendthOfRolls[$keyMinEff];
-    unset($CombinationWithFullLendthOfRolls[$keyMinEff]);
-    unset($allCombinations[$keyMinEff]);
-    return $last_element;
 }
+
 
 function getMinRolls($lengthOfRolls)
 {
     foreach ($lengthOfRolls as $key => $length) {
-        if (!$length < 1000) {
+        if ($length > 1000) {
             unset($lengthOfRolls[$key]);
         }
     }
@@ -271,7 +246,7 @@ function getMinRolls($lengthOfRolls)
 function getCominationByWidth($allCombinations, $lengthOfRolls)
 {
     foreach ($allCombinations as $key => $combination) {
-        if (!$lengthOfRolls[$combination['withMaterial']]) {
+        if ($lengthOfRolls[$combination['withMaterial']]) {
             $arr[$key] = $combination;
         }
     }
@@ -311,10 +286,10 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage, $fl
         unset($allCombinations[$key]);
         return;
     }
-/*     if ($totalMileage >= 17000 and $flag == true) {
+    if ($totalMileage >= 17000 and $flag == true) {
         unset($allCombinations[$key]);
         return;
-    } */
+    }
     $value['material'] = $arOrder[$value['order1_id']]['MATERIAL_INFO_NAME'];
     $value['main_quantity_plain'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE_COPY'];
     $value['combined_quantity_plain'] = $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE_COPY'];
@@ -346,7 +321,8 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage, $fl
 
         $arOrder[$value['order1_id']]['RUNNING_METERS'] = $remaining_length;
         $arOrder[$value['order2_id']]['RUNNING_METERS'] = 0;
-        $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = ceil($arOrder[$value['order1_id']]['RUNNING_METERS'] * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
+        //$arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = ceil($arOrder[$value['order1_id']]['RUNNING_METERS'] * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
+        $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = $value['main_left'];
     } elseif ($remaining_length < 0) {
         $value['main_made'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'];
         $value['combined_made'] = floor(($lengthorder1) * 1000 / $value['dlina_zug2'] * $value['countOrder2'] * $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
@@ -359,7 +335,8 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage, $fl
 
         $arOrder[$value['order2_id']]['RUNNING_METERS'] = $remaining_length;
         $arOrder[$value['order1_id']]['RUNNING_METERS'] = 0;
-        $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = ceil($arOrder[$value['order2_id']]['RUNNING_METERS'] * 1000 / $value['dlina_zug2'] * $value['countOrder2'] * $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
+        //$arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = ceil($arOrder[$value['order2_id']]['RUNNING_METERS'] * 1000 / $value['dlina_zug2'] * $value['countOrder2'] * $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
+        $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE'] =  $value['combined_left'];
     } else {
         $value['main_left'] = 0;
         $value['combined_left'] = 0;

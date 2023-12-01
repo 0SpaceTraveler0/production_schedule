@@ -129,15 +129,22 @@ function getListOrder($filter): array
   $result = $obResult->fetchAll();
   foreach ($result as $key => $value) {
 
-    switch ($result[$key]['TIP_UPAKOVKI_VALUE']) {
+    $result[$key]['RUNNING_METERS'] = getRaningMetrs(
+      $result[$key]['KOL_VO_PLAN_SHTUK_VALUE'],
+      $result[$key]['KOL_VO_NA_SHTAMPE_VALUE'],
+      $result[$key]['DLINA_ZAGOTOVKI_VALUE'],
+      $result[$key]['TIP_UPAKOVKI_VALUE']
+    );
+
+/*     switch ($result[$key]['TIP_UPAKOVKI_VALUE']) {
       case 62:
         $result[$key]['RUNNING_METERS'] = $result[$key]['KOL_VO_PLAN_SHTUK_VALUE'] / $result[$key]['KOL_VO_NA_SHTAMPE_VALUE'] * $result[$key]['DLINA_ZAGOTOVKI_VALUE'] / 1000;
         break;
       default:
         $result[$key]['RUNNING_METERS'] = $result[$key]['KOL_VO_PLAN_SHTUK_VALUE'] / 1 * $result[$key]['DLINA_ZAGOTOVKI_VALUE'] / 1000;
-        $qwe =1;
         break;
-    }
+    } */
+
     change_key($key, $result[$key]['ID'], $result);
   }
 
