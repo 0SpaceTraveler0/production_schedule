@@ -51,9 +51,9 @@ function app()
     }
     updateListOrder($arMadedAndLeft);
 
-    deleteAllDeal(getDeal());
-    addDeal($allCombinations);
-    
+    //deleteAllDeal(getDeal());
+    addDeal($resultAr);
+
     usort($resultAr, function ($a, $b) {
         return ($b['withMaterial'] - $a['withMaterial']) // status ascending
             ?: strcmp($a['material'], $b['material']) // start ascending
@@ -170,9 +170,6 @@ function swapCombination(&$allCombinations, $arOrder)
     ];
     $lengthOfRolls = completionLengthOfRolls($allCombinations, $lengthOfRolls, $arOrder);
 
-    echo '<pre>';
-    print_r($lengthOfRolls);
-    echo '</pre>';
     global $allWithMaterials;
     $lengthOfRolls = getMinRolls($lengthOfRolls); // массив с рулонами/ форматами меньше 1000
     $CombinationMinLendthOfRolls = getCominationByWidth($allCombinations, $lengthOfRolls); // массив с совмещениями рулонов менее 1000
@@ -195,7 +192,7 @@ function swapCombination(&$allCombinations, $arOrder)
         $arOrderRecalculation[$value['order2_id']] =  $arOrder[$value['order2_id']];
     }
     $difmaterials = array_diff($allWithMaterials, array_keys($lengthOfRolls));
-    $CombinationsRecalculation = calculation($arOrderRecalculation,$difmaterials);
+    $CombinationsRecalculation = calculation($arOrderRecalculation, $difmaterials);
     $CombinationsRecalculation = filterArResult($CombinationsRecalculation, $arOrderRecalculation);
 
     return $CombinationsRecalculation;
@@ -292,6 +289,7 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
 
     if ($value['order2'] === null) {
         $alignmentLength = $arOrder[$value['order1_id']]['RUNNING_METERS'];
+        $value['running_meters'] = $alignmentLength;
         $arOrder[$value['order1_id']]['RUNNING_METERS'] = 0;
         $value['main_made'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'];
         $value['main_left'] = 0;
@@ -307,7 +305,7 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
         $value['main_left'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] - $value['main_made'];
         $value['combined_left'] = 0;
         $alignmentLength = $arOrder[$value['order1_id']]['RUNNING_METERS'] - $remaining_length;
-
+        
         $arOrder[$value['order1_id']]['RUNNING_METERS'] = $remaining_length;
         $arOrder[$value['order2_id']]['RUNNING_METERS'] = 0;
         //$arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = ceil($arOrder[$value['order1_id']]['RUNNING_METERS'] * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
@@ -338,7 +336,7 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
         $arOrder[$value['order1_id']]['RUNNING_METERS'] = 0;
         $arOrder[$value['order2_id']]['RUNNING_METERS'] = 0;
     }
-
+    $value['running_meters'] = $alignmentLength;
     if ($alignmentLength != 0) {
         $totalMileage += $alignmentLength;
     }
