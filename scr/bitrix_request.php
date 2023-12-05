@@ -16,18 +16,18 @@ function addDeal($aRCombinations): void
     //$unixtime_arrival = FormatDate("d.m.y",strtotime($data['arrival']));
 
     $arFields = array(
-      'TITLE' => $value['order1'] . '/' . $value['order2'],
+      'TITLE' => $value['order1'] . '/' . $value['order2'] ,
       'STAGE_ID' => 'C9:NEW',
       'CATEGORY_ID' => 9,
-      'UF_CRM_1674181372' => $value['material'], //материал @[getIdValueUserFields(275,$data['actual_price']['room_type_name'])], 
+      //'UF_CRM_1674181372' => $value['material'], //материал @[getIdValueUserFields(275,$data['actual_price']['room_type_name'])], 
       'UF_CRM_1680089010545' => $value['withMaterial'], //ширина рулона
-      'UF_CRM_1680087136' => $value['order1'], // паспорт
-      'UF_CRM_1674156116' => $value['order2'], // паспорт сов
+      'UF_CRM_1680087136' => $value['order1_id'], // id паспорт
+      'UF_CRM_1674156116' => $value['order2_id'], // id паспорт сов
       //'UF_CRM_1675555129' => 0, //погонные метры
       //'UF_CRM_1675558516' => 0, //погонные метры сов
       'UF_CRM_1680087517854' => $value['countOrder1'], //Количество основного заказа в ширину
       'UF_CRM_1680088113635' => $value['countOrder2'], //Количество совмещенного заказа в ширину
-      'UF_CRM_1675555129' => $value['running_meters'], //Количество совмещенного заказа в ширину
+      'UF_CRM_1675555129' => $value['running_meters'], //меры погонные заказа
     );
 
     $CCrmDeal = new CCrmDeal(false);
@@ -136,6 +136,7 @@ function getListOrder($filter): array
       $result[$key]['DLINA_ZAGOTOVKI_VALUE'],
       $result[$key]['TIP_UPAKOVKI_VALUE']
     );
+    $result[$key]['SEQUENCE_NUMBER'] = 1;
 
     change_key($key, $result[$key]['ID'], $result);
   }
