@@ -3,7 +3,11 @@
 use Bitrix\Crm\DealTable;
 use Bitrix\Crm\Deal;
 use Bitrix\Seo\Engine\Bitrix;
-
+use Bitrix\Crm\ItemIdentifier;
+use Bitrix\Crm\Service\Container;
+use Bitrix\Main\Loader;
+use Bitrix\Crm\Service;
+use Bitrix\Crm\Item;
 require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_before.php");
 
 CModule::IncludeModule('iblock');
@@ -12,29 +16,100 @@ CModule::IncludeModule('crm');
 
 function addDeal($aRCombinations): void
 {
-  foreach ($aRCombinations as $value) {
-    //$unixtime_arrival = FormatDate("d.m.y",strtotime($data['arrival']));
+	$oldOrder = $aRCombinations[0]['order1_id'];
+	$oldColor = adjustBrightness(rand_color(),0.8);
+	$len = count($aRCombinations)-1;
+	for($i = 0; $i <= $len; ++$i){
+		if($oldOrder == $aRCombinations[$i]['order1_id']){
+			$color = $oldColor;
+		}else{
+			if($aRCombinations[$i+1]['order1_id'] == $aRCombinations[$i]['order1_id']){
+				$oldOrder = $aRCombinations[$i]['order1_id'];
+				$oldColor = adjustBrightness(rand_color(),0.8);
+				$color = $oldColor;
+			}else{
+				$color = '';
+			}
+			
+		}
 
-    $arFields = array(
-      'TITLE' => $value['order1'] . '/' . $value['order2'] ,
-      'STAGE_ID' => 'C9:NEW',
-      'CATEGORY_ID' => 9,
-      //'UF_CRM_1674181372' => $value['material'], //материал @[getIdValueUserFields(275,$data['actual_price']['room_type_name'])], 
-      'UF_CRM_1680089010545' => $value['withMaterial'], //ширина рулона
-      'UF_CRM_1680087136' => $value['order1_id'], // id паспорт
-      'UF_CRM_1674156116' => $value['order2_id'], // id паспорт сов
-      //'UF_CRM_1675555129' => 0, //погонные метры
-      //'UF_CRM_1675558516' => 0, //погонные метры сов
-      'UF_CRM_1680087517854' => $value['countOrder1'], //Количество основного заказа в ширину
-      'UF_CRM_1680088113635' => $value['countOrder2'], //Количество совмещенного заказа в ширину
-      'UF_CRM_1675555129' => $value['running_meters'], //меры погонные заказа
-    );
 
-    $CCrmDeal = new CCrmDeal(false);
-    $res = $CCrmDeal->Add($arFields);
-  }
+
+		$entityTypeId = \CCrmOwnerType::Deal;
+		$factory = Container::getInstance()->getFactory($entityTypeId);
+		$new_item = $factory->createItem([
+		  'TITLE' => $aRCombinations[$i]['order1'] . '/' . $aRCombinations[$i]['order2'] ,
+			// 'STAGE_ID' => 'C9:NEW',
+		  'STAGE_ID' => 'C9:UC_5O2IAX',
+		  'CATEGORY_ID' => 9,
+		  //'UF_CRM_1674181372' => $aRCombinations[$i]['material'], //материал @[getIdValueUserFields(275,$data['actual_price']['room_type_name'])], 
+		  'UF_CRM_1680089010545' => $aRCombinations[$i]['withMaterial'], //ширина рулона
+		  'UF_CRM_1680087136' => $aRCombinations[$i]['order1_id'], // id паспорт
+		  'UF_CRM_1674156116' => $aRCombinations[$i]['order2_id'], // id паспорт сов
+		  //'UF_CRM_1675555129' => 0, //погонные метры
+		  //'UF_CRM_1675558516' => 0, //погонные метры сов
+		  'UF_CRM_1680087517854' => $aRCombinations[$i]['countOrder1'], //Количество основного заказа в ширину
+		  'UF_CRM_1680088113635' => $aRCombinations[$i]['countOrder2'], //Количество совмещенного заказа в ширину
+		  'UF_CRM_1702558329461' => $aRCombinations[$i]['main_made'], //Штук на запуск ОСН
+		  'UF_CRM_1702558337821' => $aRCombinations[$i]['combined_made'], //Штук на запуск СОВ
+		  'UF_CRM_1702558362582' => $aRCombinations[$i]['main_left'], //Остается не сделано ОСН
+		  'UF_CRM_1702558368462' => $aRCombinations[$i]['combined_left'], //Остается несделано СОВ
+		  'UF_CRM_1675555129' => $aRCombinations[$i]['running_meters'], //меры погонные заказа
+			  'UF_CRM_1685005404730' => 1,
+		  'UF_CRM_1703658554' => $color
+		]);
+	
+		$context = new \Bitrix\Crm\Service\Context();
+		$context->setUserId(9);
+		$operation = $factory->getAddOperation($new_item, $context);
+		$res = $operation->launch();
+	}  
 }
+function rand_color() {
+  return '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT);
+}
+/**
+* Increases or decreases the brightness of a color by a percentage of the current brightness.
+*
+* @param   string  $hexCode        Supported formats: `#FFF`, `#FFFFFF`, `FFF`, `FFFFFF`
+* @param   float   $adjustPercent  A number between -1 and 1. E.g. 0.3 = 30% lighter; -0.4 = 40% darker.
+*
+* @return  string
+*
+* @author  maliayas
+*/
+function adjustBrightness($hexCode, $adjustPercent) {
+  $hexCode = ltrim($hexCode, '#');
 
+  if (strlen($hexCode) == 3) {
+      $hexCode = $hexCode[0] . $hexCode[0] . $hexCode[1] . $hexCode[1] . $hexCode[2] . $hexCode[2];
+  }
+
+  $hexCode = array_map('hexdec', str_split($hexCode, 2));
+
+  foreach ($hexCode as & $color) {
+      $adjustableLimit = $adjustPercent < 0 ? $color : 255 - $color;
+      $adjustAmount = ceil($adjustableLimit * $adjustPercent);
+
+      $color = str_pad(dechex($color + $adjustAmount), 2, '0', STR_PAD_LEFT);
+  }
+
+  return '#' . implode($hexCode);
+}
+function startingBusinessProcess()
+{
+	CModule::IncludeModule('bizproc');
+	$deals = getDeal();
+	foreach ($deals as $deal) {
+		 //запускаем робота для текущей стадии сделки
+		CBPDocument::StartWorkflow(
+			54,  //ID робота, смотреть через таблицы
+			array("crm", "CCrmDocumentDeal", "DEAL_" . $deal['ID']),
+			array("TargetUser" => "user_1"),
+			$arErrorsTmp
+		);
+	}
+}
 function deleteAllDeal($deals): void
 {
   foreach ($deals as $deal) {

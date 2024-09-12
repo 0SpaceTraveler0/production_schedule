@@ -3,11 +3,14 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_be
 require_once($_SERVER["DOCUMENT_ROOT"] . '/local/production_schedule/scr/bitrix_request.php');
 CModule::IncludeModule('iblock');
 CModule::IncludeModule('main');
+use Bitrix\Main\Loader;
+use Production\Line\QueueProductionLineTable;
 $width_conditions = [
     '1050' => 5,
     '840' => 8
 ];
 $allWithMaterials = [840, 1050, 1260, 1400];
+app();
 function app()
 {
     global $allWithMaterials;
@@ -29,6 +32,7 @@ function app()
             "!==OSTALOS_SDELAT_VALUE" => null
         ]
     ];
+	
     $arAllOrder = getListOrder($filter);
     $arUnfulfilledOrder = getUnfulfilledOrders(getDeal());
     $arAllOrder += $arUnfulfilledOrder;
@@ -46,20 +50,52 @@ function app()
 
     //обновление списка граффик производства
     $arMadedAndLeft = [];
-    /* foreach ($resultAr as $key => &$value) {
+     foreach ($resultAr as $key => &$value) {
         putValueMadedAndLeft($value, $arMadedAndLeft);
-    } */
+    }
     //updateListOrder($arMadedAndLeft);
 
-/*     deleteAllDeal(getDeal());
-    addDeal($resultAr);
-
+    //deleteAllDeal(getDeal());
     usort($resultAr, function ($a, $b) {
         return ($b['withMaterial'] - $a['withMaterial']) // status ascending
             ?: strcmp($a['material'], $b['material']) // start ascending
-            //?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
+            ?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
         ;
-    }); */
+    });
+    addDeal(array_reverse($resultAr));
+    //startingBusinessProcess();
+
+    file_put_contents(__DIR__.'/result.log', print_r($resultAr, true));
+
+    if (!Loader::includeModule('production.line')) {
+        die('Module not installed');
+    }
+    // Проходимся по массиву и добавляем каждую запись в таблицу
+    foreach ($resultAr as $data) {
+        $result = QueueProductionLineTable::add([
+            'EFFICIENCY_PERCENT' => rtrim($data['effectiveness'], '%'), // убираем знак процента и сохраняем число
+            'MATERIAL_WIDTH' => $data['withMaterial'],
+            'MATERIAL' => $data['material'],
+            'MAIN_ELEMENT_ID' => $data['order1_id'],
+            'COMBINED_ELEMENT_ID' => $data['order2_id'],
+            'COUNT_ORDER_MAIN' => $data['countOrder1'],
+            'COUNT_ORDER_COMBINED' => $data['countOrder2'],
+            'QUANTITY_WIDTH_MAIN' => $data['dlina_zug1'],
+            'QUANTITY_WIDTH_COMBINED' => $data['dlina_zug2'],
+            'REMAINING_MAIN_QUANTITY' => $data['main_left'],
+            'REMAINING_COMBINED_QUANTITY' => $data['combined_left'],
+            'USED_MAIN_QUANTITY' => $data['main_made'],
+            'USED_COMBINED_QUANTITY' => $data['combined_made'],
+            'PLAN_MAIN_QUANTITY' => $data['main_quantity_plain'],
+            'PLAN_COMBINED_QUANTITY' => $data['combined_quantity_plain'],
+        ]);
+
+        if ($result->isSuccess()) {
+            echo "Record added successfully. ID: " . $result->getId() . "<br>";
+        } else {
+            echo "Error adding record: " . implode(', ', $result->getErrorMessages()) . "<br>";
+        }
+    }
     return $resultAr;
 }
 function calculation(array $arOrder, array $allWithMaterials)
@@ -201,6 +237,7 @@ function filterArResult(array $allCombinations, array $arOrder): array
 {
     global $width_conditions;
     // сортируем, номера заказов от меньшего к большему и для каждого заказа от большей эфективности к меньшей
+    //return [$a['order1'], $b['effectiveness']] <=> [$b['order1'], $a['effectiveness']];
     usort($allCombinations, function (array $a, array $b) {
         return [$a['order1'], $b['effectiveness']] <=> [$b['order1'], $a['effectiveness']];
     });
@@ -272,7 +309,7 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
         unset($allCombinations[$key]);
         return;
     }
-    if ($totalMileage >= 17000) {
+    if ($totalMileage >= 15000) {
         unset($allCombinations[$key]);
         return;
     }
@@ -302,7 +339,7 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
 
     $remaining_length = ceil($lengthorder1 - $lengthorder2);
     if ($remaining_length > 0) {
-        $value['main_made'] = floor($lengthorder2 * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']) - 1;
+        $value['main_made'] = floor($lengthorder2 * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
         $value['combined_made'] = $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE'];
         // $value['main_left'] = (int)($remaining_length * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
         $value['main_left'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] - $value['main_made'];
