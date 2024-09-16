@@ -70,25 +70,35 @@ function app()
     if (!Loader::includeModule('production.line')) {
         die('Module not installed');
     }
-    // Проходимся по массиву и добавляем каждую запись в таблицу
+
+    file_put_contents(__DIR__."log_add.txt", print_r($resultAr,true));
+
     foreach ($resultAr as $data) {
-        $result = QueueProductionLineTable::add([
+
+        $dataToAdd = [
             'EFFICIENCY_PERCENT' => rtrim($data['effectiveness'], '%'), // убираем знак процента и сохраняем число
             'MATERIAL_WIDTH' => $data['withMaterial'],
             'MATERIAL' => $data['material'],
             'MAIN_ELEMENT_ID' => $data['order1_id'],
-            'COMBINED_ELEMENT_ID' => $data['order2_id'],
             'COUNT_ORDER_MAIN' => $data['countOrder1'],
-            'COUNT_ORDER_COMBINED' => $data['countOrder2'],
             'QUANTITY_WIDTH_MAIN' => $data['dlina_zug1'],
-            'QUANTITY_WIDTH_COMBINED' => $data['dlina_zug2'],
             'REMAINING_MAIN_QUANTITY' => $data['main_left'],
-            'REMAINING_COMBINED_QUANTITY' => $data['combined_left'],
             'USED_MAIN_QUANTITY' => $data['main_made'],
-            'USED_COMBINED_QUANTITY' => $data['combined_made'],
             'PLAN_MAIN_QUANTITY' => $data['main_quantity_plain'],
-            'PLAN_COMBINED_QUANTITY' => $data['combined_quantity_plain'],
-        ]);
+        ];
+
+        // Проверяем наличие данных для combined и добавляем только если они существуют
+        if (!empty($data['order2_id'])) {
+            $dataToAdd['COMBINED_ELEMENT_ID'] = $data['order2_id'];
+            $dataToAdd['COUNT_ORDER_COMBINED'] = $data['countOrder2'];
+            $dataToAdd['QUANTITY_WIDTH_COMBINED'] = $data['dlina_zug2'];
+            $dataToAdd['REMAINING_COMBINED_QUANTITY'] = $data['combined_left'];
+            $dataToAdd['USED_COMBINED_QUANTITY'] = $data['combined_made'];
+            $dataToAdd['PLAN_COMBINED_QUANTITY'] = $data['combined_quantity_plain'];
+        }
+
+
+        $result = QueueProductionLineTable::add($dataToAdd);
 
         if ($result->isSuccess()) {
             echo "Record added successfully. ID: " . $result->getId() . "<br>";
@@ -247,6 +257,8 @@ function filterArResult(array $allCombinations, array $arOrder): array
     foreach ($allCombinations as $key => &$value) {
         filter($allCombinations, $arOrder, $key, $value, $totalMileage);
     }
+
+
     return $allCombinations;
 }
 function getRaningMetrs($KOL_VO_PLAN_SHTUK_VALUE, $KOL_VO_NA_SHTAMPE_VALUE, $DLINA_ZAGOTOVKI_VALUE, $TIP_UPAKOVKI_VALUE)
@@ -310,6 +322,7 @@ function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
         return;
     }
     if ($totalMileage >= 15000) {
+        COption::SetOptionString('production.line', 'totalMileage', $totalMileage);
         unset($allCombinations[$key]);
         return;
     }

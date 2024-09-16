@@ -27,6 +27,8 @@ $backendData = QueueProductionLineTable::getList([
         'material_type' => 'MATERIAL', // Переименованный алиас для поля "MATERIAL"
     ]
 ])->fetchAll();
+
+$totalMileage = $current_value = COption::GetOptionString('production.line', 'totalMileage');
 ?>
 
 <!DOCTYPE html>
@@ -73,6 +75,7 @@ $backendData = QueueProductionLineTable::getList([
 
     const rows = <?= json_encode($backendData, JSON_UNESCAPED_SLASHES) ?>;
     console.log(rows);
+    console.log(<?= json_encode($totalMileage, JSON_UNESCAPED_SLASHES) ?>);
 
     window.app = new Vue({
         el: '#app',
