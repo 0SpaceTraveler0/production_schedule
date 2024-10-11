@@ -8,8 +8,8 @@ Loader::includeModule('production.line');
 
 $backendData = QueueProductionLineTable::getList([
     'select' => [
-        'order1' => 'MAIN_ELEMENT_ID',               
-        'order2' => 'COMBINED_ELEMENT_ID',          
+        'order1' => 'NAME_ORDER_MAIN',               
+        'order2' => 'NAME_ORDER_COMBINED',          
         'withMaterial' => 'MATERIAL_WIDTH',         
         'countOrder1' => 'COUNT_ORDER_MAIN',        
         'countOrder2' => 'COUNT_ORDER_COMBINED',    
@@ -28,7 +28,7 @@ $backendData = QueueProductionLineTable::getList([
     ]
 ])->fetchAll();
 
-$totalMileage = $current_value = COption::GetOptionString('production.line', 'totalMileage');
+$totalMileage = $current_value = COption::GetOptionString('production.line', 'totalMileage', false);
 ?>
 
 <!DOCTYPE html>
@@ -47,7 +47,7 @@ $totalMileage = $current_value = COption::GetOptionString('production.line', 'to
 <div id="app">
     <div class="q-pa-md">
         <q-table
-            title="График"
+            title="График <?=$totalMileage?>"
             :data="rows"
             :columns="columns"
             row-key="name"
