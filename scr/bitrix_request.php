@@ -106,9 +106,8 @@ function startingBusinessProcess()
   CModule::IncludeModule('bizproc');
   $deals = getDeal();
   foreach ($deals as $deal) {
-    //запускаем робота для текущей стадии сделки
     CBPDocument::StartWorkflow(
-      54,  //ID робота, смотреть через таблицы
+      54,  //ID робота
       array("crm", "CCrmDocumentDeal", "DEAL_" . $deal['ID']),
       array("TargetUser" => "user_1"),
       $arErrorsTmp

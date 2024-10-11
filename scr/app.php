@@ -68,12 +68,12 @@ function app()
     //updateListOrder($arMadedAndLeft);
 
     //deleteAllDeal(getDeal());
-    // usort($resultAr, function ($a, $b) {
-    //     return ($b['withMaterial'] - $a['withMaterial']) // status ascending
-    //         ?: strcmp($a['material'], $b['material']) // start ascending
-    //         ?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
-    //     ;
-    // });
+    usort($resultAr, function ($a, $b) {
+        return ($b['withMaterial'] - $a['withMaterial']) // status ascending
+            ?: strcmp($a['material'], $b['material']) // start ascending
+            ?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
+        ;
+    });
     addDeal(array_reverse($resultAr));
 
     //startingBusinessProcess();
@@ -86,7 +86,8 @@ function app()
 
         $dataToAdd = [
             'NAME_ORDER_MAIN' => $data['order1'],
-            'EFFICIENCY_PERCENT' => rtrim($data['effectiveness'], '%'), // убираем знак процента и сохраняем число
+            // 'EFFICIENCY_PERCENT' => rtrim($data['effectiveness'], '%'), // убираем знак процента и сохраняем число
+            'EFFICIENCY_PERCENT' => $data['effectiveness'],
             'MATERIAL_WIDTH' => $data['withMaterial'],
             'MATERIAL' => $data['material'],
             'MAIN_ELEMENT_ID' => $data['order1_id'],
@@ -230,16 +231,16 @@ function completionLengthOfRolls($allCombinations, $lengthOfRolls, &$arOrder)
 {
     foreach ($allCombinations as $key => $value) {
         if ($value['order2'] === null) {
-            $lengthorder1 = ceil($value['main_made'] * $value['dlina_zug1'] / ($value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE'] * 1000));
-            $arOrder[$value['order1_id']]['RUNNING_METERS'] = $lengthorder1;
+            $lengthOrder_main = ceil($value['main_made'] * $value['dlina_zug1'] / ($value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE'] * 1000));
+            $arOrder[$value['order1_id']]['RUNNING_METERS'] = $lengthOrder_main;
         } else {
-            $lengthorder1 = ceil($value['main_made'] * $value['dlina_zug1'] / ($value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE'] * 1000));
+            $lengthOrder_main = ceil($value['main_made'] * $value['dlina_zug1'] / ($value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE'] * 1000));
             $lengthorder2 = ceil($value['main_made'] * $value['dlina_zug2'] / ($value['countOrder2'] * $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE'] * 1000));
-            $arOrder[$value['order1_id']]['RUNNING_METERS'] = $lengthorder1;
-            $arOrder[$value['order2_id']]['RUNNING_METERS'] = $lengthorder1;
+            $arOrder[$value['order1_id']]['RUNNING_METERS'] = $lengthOrder_main;
+            $arOrder[$value['order2_id']]['RUNNING_METERS'] = $lengthOrder_main;
         }
 
-        $q = max($lengthorder1, $lengthorder2);
+        $q = max($lengthOrder_main, $lengthorder2);
         $lengthOfRolls[$value['withMaterial']] += $q;
     }
 
@@ -292,10 +293,6 @@ function filterArResult(array $allCombinations, array $arOrder): array
     });
 
     $totalMileage = 0;
-
-    // foreach ($allCombinations as $key => &$value) {
-    //     filter($allCombinations, $arOrder, $key, $value, $totalMileage);
-    // }
     foreach ($allCombinations as $key => &$value) {
         filterCombination($allCombinations, $arOrder, $key, $value, $totalMileage);
     }
@@ -358,104 +355,7 @@ function putValueMadedAndLeft($value, &$arr)
         ];
     }
 }
-/* function filter(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
-{
-    if ($arOrder[$value['order1_id']]['RUNNING_METERS'] === 0 or $arOrder[$value['order2_id']]['RUNNING_METERS'] === 0) {
-        unset($allCombinations[$key]);
-        return;
-    }
-    if ($totalMileage >= 15000) {
-        unset($allCombinations[$key]);
-        return;
-    }
-    $value['material'] = $arOrder[$value['order1_id']]['MATERIAL_INFO_NAME'];
-    $value['main_quantity_plain'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE_COPY'];
-    $value['combined_quantity_plain'] = $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE_COPY'];
 
-    if (isset($value['trueEffectiveness'])) {
-        $value['effectiveness'] = $value['trueEffectiveness'];
-    }
-    $value['effectiveness'] = $value['effectiveness'] . '%';
-
-    $lengthorder1 = $arOrder[$value['order1_id']]['RUNNING_METERS'] / $value['countOrder1'];
-
-    if ($value['order2'] === null) {
-        $alignmentLength = $arOrder[$value['order1_id']]['RUNNING_METERS'];
-        $value['running_meters'] = $alignmentLength;
-        $value['sequence_number'] = $arOrder[$value['order1_id']]['SEQUENCE_NUMBER'];
-        $arOrder[$value['order1_id']]['SEQUENCE_NUMBER']++;
-        $arOrder[$value['order1_id']]['RUNNING_METERS'] = 0;
-        $value['main_made'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'];
-        $value['main_left'] = 0;
-        $value['order1'] = $value['order1'] . " " . $value['sequence_number'];
-        return;
-    }
-    $lengthorder2 = $arOrder[$value['order2_id']]['RUNNING_METERS'] / $value['countOrder2'];
-
-    // $remaining_length = ceil($lengthorder1 - $lengthorder2);
-    //round округлять до сотых
-    $remaining_length = round(($lengthorder1 - $lengthorder2),2);
-    if ($remaining_length > 0) {
-        $value['main_made'] = floor($lengthorder2 * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
-        $value['combined_made'] = $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE'];
-        // $value['main_left'] = (int)($remaining_length * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
-        $value['main_left'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] - $value['main_made'];
-        $value['combined_left'] = 0;
-        $alignmentLength = $arOrder[$value['order1_id']]['RUNNING_METERS'] - $remaining_length;
-
-
-        $value['sequence_number'] = $arOrder[$value['order1_id']]['SEQUENCE_NUMBER'];
-        $arOrder[$value['order1_id']]['SEQUENCE_NUMBER']++;
-        $value['sequence_number2'] = $arOrder[$value['order2_id']]['SEQUENCE_NUMBER'];
-        $arOrder[$value['order2_id']]['SEQUENCE_NUMBER']++;
-
-        $value['order1'] = $value['order1'] . " " . $value['sequence_number'];
-        $value['order2'] = $value['order2'] . " " . $value['sequence_number2'];
-
-        $arOrder[$value['order1_id']]['RUNNING_METERS'] = $remaining_length;
-        $arOrder[$value['order2_id']]['RUNNING_METERS'] = 0;
-        //$arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = ceil($arOrder[$value['order1_id']]['RUNNING_METERS'] * 1000 / $value['dlina_zug1'] * $value['countOrder1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
-        $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = $value['main_left'];
-    } elseif ($remaining_length < 0) {
-        $value['main_made'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'];
-        $value['combined_made'] = floor(($lengthorder1) * 1000 / $value['dlina_zug2'] * $value['countOrder2'] * $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
-
-        $remaining_length = $remaining_length * -1;
-        $value['main_left'] = 0;
-        // $value['combined_left'] = (int)($remaining_length * 1000 / $value['dlina_zug2'] * $value['countOrder2'] * $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
-        $value['combined_left'] = $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE'] - $value['combined_made'];
-        $alignmentLength = $arOrder[$value['order2_id']]['RUNNING_METERS'] - $remaining_length;
-
-        $value['sequence_number'] = $arOrder[$value['order1_id']]['SEQUENCE_NUMBER'];
-        $arOrder[$value['order1_id']]['SEQUENCE_NUMBER']++;
-        $value['sequence_number2'] = $arOrder[$value['order2_id']]['SEQUENCE_NUMBER'];
-        $arOrder[$value['order2_id']]['SEQUENCE_NUMBER']++;
-
-        $value['order1'] = $value['order1'] . " " . $value['sequence_number'];
-        $value['order2'] = $value['order2'] . " " . $value['sequence_number2'];
-
-        $arOrder[$value['order2_id']]['RUNNING_METERS'] = $remaining_length;
-        $arOrder[$value['order1_id']]['RUNNING_METERS'] = 0;
-        //$arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE'] = ceil($arOrder[$value['order2_id']]['RUNNING_METERS'] * 1000 / $value['dlina_zug2'] * $value['countOrder2'] * $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE']);
-        $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE'] =  $value['combined_left'];
-    } else {
-        $value['main_left'] = 0;
-        $value['combined_left'] = 0;
-
-        $value['main_made'] = $arOrder[$value['order1_id']]['RUNNING_METERS'] / 2 * 1000 / $value['dlina_zug1'] * $arOrder[$value['order1_id']]['KOL_VO_NA_SHTAMPE_VALUE'];
-        $value['combined_made'] = $arOrder[$value['order2_id']]['RUNNING_METERS'] / 2 * 1000 / $value['dlina_zug2'] * $arOrder[$value['order2_id']]['KOL_VO_NA_SHTAMPE_VALUE'];
-
-        $alignmentLength = $arOrder[$value['order1_id']]['RUNNING_METERS'] / 2;
-
-        $arOrder[$value['order1_id']]['RUNNING_METERS'] = 0;
-        $arOrder[$value['order2_id']]['RUNNING_METERS'] = 0;
-    }
-    $value['running_meters'] = $alignmentLength;
-    if ($alignmentLength != 0) {
-        $totalMileage += $alignmentLength;
-    }
-}
- */
 
 function filterCombination(&$allCombinations, &$arOrder, $key, &$value, &$totalMileage)
 {
@@ -464,14 +364,22 @@ function filterCombination(&$allCombinations, &$arOrder, $key, &$value, &$totalM
         return;
     }
 
-    processMaterialAndQuantity($arOrder, $value);
 
-    $lengthOrder1 = getRunningMeters($arOrder, $value['order1_id'], $value['countOrder1']);
+    // processMaterialAndQuantity($arOrder, $value); // развернул функцию
+    //заполняем данные, для выводаа, можно перенести перед возвратом результата
+    $value['material'] = $arOrder[$value['order1_id']]['MATERIAL_INFO_NAME'];
+    $value['main_quantity_plain'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE_COPY'];
+    $value['combined_quantity_plain'] = $arOrder[$value['order2_id']]['KOL_VO_PLAN_SHTUK_VALUE_COPY'] ?? 0;
+    $value['effectiveness'] = $value['trueEffectiveness'] ?? '';
+    // $value['effectiveness'] .= '%'; // более не требуется
+
+
+    $lengthOrder_main = getRunningMeters($arOrder, $value['order1_id'], $value['countOrder1']);
 
     if (empty($value['order2_id'])) {
-        processSingleOrder($arOrder, $value, $lengthOrder1);
+        processSingleOrder($arOrder, $value, $lengthOrder_main);
     } else {
-        processDoubleOrder($arOrder, $value, $lengthOrder1, $totalMileage);
+        processDoubleOrder($arOrder, $value, $lengthOrder_main, $totalMileage);
     }
 }
 
@@ -501,21 +409,21 @@ function processMaterialAndQuantity(&$arOrder, &$value)
     $value['effectiveness'] .= '%';
 }
 
-function processSingleOrder(&$arOrder, &$value, $lengthOrder1)
+function processSingleOrder(&$arOrder, &$value, $lengthOrder_main)
 {
-    assignSingleOrderValues($arOrder, $value, $lengthOrder1);
+    assignSingleOrderValues($arOrder, $value, $lengthOrder_main);
     updateSequenceNumbers($arOrder, $value);
 }
 
-function processDoubleOrder(&$arOrder, &$value, $lengthOrder1, &$totalMileage)
+function processDoubleOrder(&$arOrder, &$value, $lengthOrder_main, &$totalMileage)
 {
     $lengthOrder2 = getRunningMeters($arOrder, $value['order2_id'], $value['countOrder2']);
-    $remainingLength = round($lengthOrder1 - $lengthOrder2, 2);
+    $remainingLength = round($lengthOrder_main - $lengthOrder2, 2);
 
     if ($remainingLength > 0) {
         calculateOrderQuantities($arOrder, $value, $lengthOrder2, $remainingLength, 'main');
     } elseif ($remainingLength < 0) {
-        calculateOrderQuantities($arOrder, $value, $lengthOrder1, $remainingLength, 'combined');
+        calculateOrderQuantities($arOrder, $value, $lengthOrder_main, $remainingLength, 'combined');
     } else {
         calculateEqualOrderQuantities($arOrder, $value);
     }
@@ -526,12 +434,13 @@ function processDoubleOrder(&$arOrder, &$value, $lengthOrder1, &$totalMileage)
     }
 }
 
-function assignSingleOrderValues(&$arOrder, &$value, $lengthOrder1)
+function assignSingleOrderValues(&$arOrder, &$value, $lengthOrder_main)
 {
     $value['running_meters'] = $arOrder[$value['order1_id']]['RUNNING_METERS'];
     $value['main_made'] = $arOrder[$value['order1_id']]['KOL_VO_PLAN_SHTUK_VALUE'];
     $value['main_left'] = 0;
     $arOrder[$value['order1_id']]['RUNNING_METERS'] = 0;
+    
 }
 
 function calculateOrderQuantities(&$arOrder, &$value, $lengthOrder, $remainingLength, $type)
@@ -569,6 +478,9 @@ function calculateEqualOrderQuantities(&$arOrder, &$value)
     $arOrder[$value['order1_id']]['RUNNING_METERS'] = 0;
     $arOrder[$value['order2_id']]['RUNNING_METERS'] = 0;
 
+
+
+    
     updateSequenceNumbers($arOrder, $value);
 }
 
@@ -583,4 +495,10 @@ function updateSequenceNumbers(&$arOrder, &$value)
     $value['sequence_number2'] = $arOrder[$value['order2_id']]['SEQUENCE_NUMBER']++;
     $value['order1'] .= " " . $value['sequence_number'];
     $value['order2'] .= " " . $value['sequence_number2'];
+
+    //из предыдущего кода .. другая ветка
+    // $value['sequence_number'] = $arOrder[$value['order1_id']]['SEQUENCE_NUMBER'];
+    // $arOrder[$value['order1_id']]['SEQUENCE_NUMBER']++;
+    // $value['sequence_number2'] = $arOrder[$value['order2_id']]['SEQUENCE_NUMBER'];
+    // $arOrder[$value['order2_id']]['SEQUENCE_NUMBER']++;
 }
