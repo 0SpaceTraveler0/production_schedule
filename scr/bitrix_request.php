@@ -18,16 +18,16 @@ CModule::IncludeModule('crm');
 function addDeal($aRCombinations): void
 {
   $oldOrder = $aRCombinations[0]['order1_id'];
-  $oldCountOrder = $aRCombinations[0]['countOrder1'];  
+  $oldCountOrder = $aRCombinations[0]['countOrder1'];
   $oldColor = adjustBrightness(rand_color(), 0.8);
   $len = count($aRCombinations) - 1;
   for ($i = 0; $i <= $len; ++$i) {
     if ($oldOrder == $aRCombinations[$i]['order1_id'] and  $oldCountOrder == $aRCombinations[$i]['countOrder1']) {
       $color = $oldColor;
     } else {
-      if ($aRCombinations[$i + 1]['order1_id'] == $aRCombinations[$i]['order1_id'] and  $aRCombinations[$i + 1]['countOrder1'] == $aRCombinations[$i]['countOrder1'] ) {
+      if ($aRCombinations[$i + 1]['order1_id'] == $aRCombinations[$i]['order1_id'] and  $aRCombinations[$i + 1]['countOrder1'] == $aRCombinations[$i]['countOrder1']) {
         $oldOrder = $aRCombinations[$i]['order1_id'];
-        $oldCountOrder = $aRCombinations[$i]['countOrder1'];        
+        $oldCountOrder = $aRCombinations[$i]['countOrder1'];
         $oldColor = adjustBrightness(rand_color(), 0.8);
         $color = $oldColor;
       } else {
@@ -148,16 +148,39 @@ function getUnfulfilledOrders($deals)
   }
   $arr = array_unique($arr);
   $filter = [
+    // "NOMER_VALUE" => $arr,
     "IBLOCK_ID" => 17,
-    "NOMER_VALUE" => $arr,
-    "!==TIP_UPAKOVKI_VALUE" => null,
-    "!==DATA_OTGRUZKI_VALUE" => null,
-    "!==MATERIAL_INFO_NAME" => null,
-    "!==RAZVERTKA_SHIRINA_PO_NOZHAM_VALUE" => 0,
-    "!==KOL_VO_NA_SHTAMPE_VALUE" => null,
-    "!==DLINA_ZAGOTOVKI_VALUE" => 0,
-    "!==KOL_VO_PLAN_SHTUK_VALUE" => null,
+    "!NOMER_VALUE" => $arr,
+    "!TIP_UPAKOVKI_VALUE" => false, // тип изделия
+    [
+      'LOGIC' => 'OR',
+      "!DATA_OTGRUZKI_VALUE" => false,
+      ">DATA_OTGRUZKI_VALUE" => 0
+    ],
+    "!MATERIAL_INFO_NAME" => false,
+    [
+      'LOGIC' => 'OR',
+      ">RAZVERTKA_SHIRINA_PO_NOZHAM_VALUE" => 0,
+      "!RAZVERTKA_SHIRINA_PO_NOZHAM_VALUE" => false
+    ],
+    [
+      'LOGIC' => 'OR',
+      ">DLINA_ZAGOTOVKI_VALUE" => 0,
+      "!DLINA_ZAGOTOVKI_VALUE" => false
+    ],
+    [
+      'LOGIC' => 'OR',
+      ">KOL_VO_NA_SHTAMPE_VALUE" => 0,
+      "!KOL_VO_NA_SHTAMPE_VALUE" => false
+    ],
+    [
+      'LOGIC' => 'OR',
+      ">KOL_VO_PLAN_SHTUK_VALUE" => 0,
+      "!KOL_VO_PLAN_SHTUK_VALUE" => false
+    ],
   ];
+
+
   $arAllOrder = getListOrder($filter);
   return $arAllOrder;
 }
