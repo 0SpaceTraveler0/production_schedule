@@ -13,6 +13,7 @@ $width_conditions = [
 ];
 $allWithMaterials = [840, 1050, 1260, 1400];
 app();
+
 function app()
 {
     global $allWithMaterials;
@@ -65,14 +66,8 @@ function app()
     //    return $value['countOrder2'] != 0;
     // }, ARRAY_FILTER_USE_BOTH);
 
-
-
-    $lengthOfRolls = [
-        '1400' => 0,
-        '1260' => 0,
-        '1050' => 0,
-        '840' => 0
-    ];
+    //Пересчёт TotalMileage в функции swapCombination меняем совмещения на рулон с погонными метрами меньше 1000
+    countingTotalMileage($resultAr);
 
     //обновление списка граффик производства
     // $arMadedAndLeft = [];
@@ -133,6 +128,14 @@ function app()
         // }
     }
     // return $resultAr;
+}
+function countingTotalMileage(&$arrCombination)
+{
+    $totalMileage = 0;
+    foreach ($arrCombination as $value) {
+        $totalMileage += $value['running_meters'];
+    }
+    COption::SetOptionString('production.line', 'totalMileage', $totalMileage);
 }
 function calculation(array $arOrder, array $allWithMaterials)
 {
@@ -299,14 +302,13 @@ function swapCombination(&$allCombinations, $arOrder)
 }
 function filterArResult(array $allCombinations, array $arOrder): array
 {
+    $totalMileage = 0;
     global $width_conditions;
     // сортируем, номера заказов от меньшего к большему и для каждого заказа от большей эфективности к меньшей
     //return [$a['order1'], $b['effectiveness']] <=> [$b['order1'], $a['effectiveness']];
     usort($allCombinations, function (array $a, array $b) {
         return [$a['order1'], $b['effectiveness']] <=> [$b['order1'], $a['effectiveness']];
     });
-
-    $totalMileage = 0;
     $keys = array_keys($allCombinations);
     foreach ($keys as $key) {
         if (!isset($allCombinations[$key])) {
@@ -315,9 +317,6 @@ function filterArResult(array $allCombinations, array $arOrder): array
         $value = $allCombinations[$key];
         filterCombination($allCombinations, $arOrder, $key, $value, $totalMileage);
     }
-
-    COption::SetOptionString('production.line', 'totalMileage', $totalMileage);
-
     return $allCombinations;
 }
 function getRaningMetrs($KOL_VO_PLAN_SHTUK_VALUE, $KOL_VO_NA_SHTAMPE_VALUE, $DLINA_ZAGOTOVKI_VALUE, $TIP_UPAKOVKI_VALUE)
@@ -464,7 +463,7 @@ function processDoubleOrder(&$arOrder, &$value, $lengthOrder1)
         calculateQuantitiesForCombinedOrder($arOrder, $value, $lengthOrder1, $remainingLength);
     } else {
         calculateEqualOrderQuantities($arOrder, $value);
-    }    
+    }
 }
 
 function calculateQuantitiesForMainOrder(&$arOrder, &$value, $lengthOrder2, $remainingLength)
