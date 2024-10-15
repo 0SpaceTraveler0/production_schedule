@@ -10,3 +10,4 @@ if (!Loader::includeModule('production.line')) {
 deleteAllDeal(getDeal());
 
 QueueProductionLineTable::deleteAllRecords();
+COption::SetOptionString('production.line', 'totalMileage', 0);
