@@ -85,10 +85,10 @@ function app()
             ?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
         ;
     });
-    echo '<pre>';
-    print_r($resultAr);
-    echo '</pre>';
-    // addDeal(array_reverse($resultAr));
+    // echo '<pre>';
+    // print_r($resultAr);
+    // echo '</pre>';
+    addDeal(array_reverse($resultAr));
 
     //startingBusinessProcess();
 
@@ -537,7 +537,7 @@ function isInvalidOrder($arOrder, $value)
 
 function isMileageExceeded($totalMileage)
 {
-    return $totalMileage >= 15000;
+    return $totalMileage >= 30000;
 }
 
 function getRunningMeters($arOrder, $orderId, $countOrder)
