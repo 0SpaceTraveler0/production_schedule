@@ -26,7 +26,7 @@ $backendData = QueueProductionLineTable::getList([
         'combined_left' => 'REMAINING_COMBINED_QUANTITY',
         'material_type' => 'MATERIAL', // Переименованный алиас для поля "MATERIAL"
     ]
-])->fetchAll();
+])->fetchAll(); 
 
 $totalMileage = $current_value = COption::GetOptionString('production.line', 'totalMileage', false);
 ?>

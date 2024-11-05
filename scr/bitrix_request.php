@@ -1,23 +1,25 @@
 <?php
-
+/* 
 use Bitrix\Crm\DealTable;
 use Bitrix\Crm\Deal;
 use Bitrix\Seo\Engine\Bitrix;
 use Bitrix\Crm\ItemIdentifier;
+use Bitrix\Crm\Service;
+use Bitrix\Crm\Item; */
 use Bitrix\Crm\Service\Container;
 use Bitrix\Main\Loader;
-use Bitrix\Crm\Service;
-use Bitrix\Crm\Item;
+use Production\Line\QueueProductionLineTable;
 
-require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_before.php");
+Loader::includeModule('production.line');
+// require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_before.php");
 
 CModule::IncludeModule('iblock');
 CModule::IncludeModule('main');
 CModule::IncludeModule('crm');
 
-function groupedDeal($aRCombinations)
+function groupedDeal(&$aRCombinations)
 {
-    
+
     $grouped = array_reduce($aRCombinations, function ($acc, $item) {
         $key = $item['order1_id'] . '-' . $item['countOrder1'] . '-' . $item['withMaterial'];
         if (!isset($acc[$key])) {
@@ -43,12 +45,61 @@ function groupedDeal($aRCombinations)
     return $result;
 }
 
-function addDeal($aRCombinations): void
+function createAddDealAgent(): void
 {
+    // $handle = popen("php /xampp/htdocs/bitrix/local/production_schedule/scr/add_agent.php &", 'r');
+    // pclose($handle);
+    // exec("start /B php E:/xampp/htdocs/bitrix/local/production_schedule/scr/add_agent.php");
+
+    // require_once("/xampp/htdocs/bitrix/local/production_schedule/scr/add_agent.php")
+    
+/*     $existingAgent = CAgent::GetList(
+        [],
+        ["NAME" => $agentName]
+    )->Fetch();
+
+    $id = CAgent::AddAgent(      
+        'addDeal()',
+        "main",
+        "N",
+        0,
+        date("d.m.Y H:i:s"),
+        "Y"
+    );
+    echo '<pre>';
+    print_r($id);
+    echo '</pre>'; */
+}
+
+function addDeal()
+{
+    $data = QueueProductionLineTable::getList([
+        'select' => [
+            'order1' => 'NAME_ORDER_MAIN',
+            'order2' => 'NAME_ORDER_COMBINED',
+            'withMaterial' => 'MATERIAL_WIDTH',
+            'countOrder1' => 'COUNT_ORDER_MAIN',
+            'countOrder2' => 'COUNT_ORDER_COMBINED',
+            'dlina_zug1' => 'QUANTITY_WIDTH_MAIN',
+            'dlina_zug2' => 'QUANTITY_WIDTH_COMBINED',
+            'order1_id' => 'MAIN_ELEMENT_ID',
+            'order2_id' => 'COMBINED_ELEMENT_ID',
+            'effectiveness' => 'EFFICIENCY_PERCENT',
+            'main_quantity_plain' => 'PLAN_MAIN_QUANTITY',
+            'combined_quantity_plain' => 'PLAN_COMBINED_QUANTITY',
+            'main_made' => 'USED_MAIN_QUANTITY',
+            'combined_made' => 'USED_COMBINED_QUANTITY',
+            'main_left' => 'REMAINING_MAIN_QUANTITY',
+            'combined_left' => 'REMAINING_COMBINED_QUANTITY',
+            'material_type' => 'MATERIAL', // Переименованный алиас для поля "MATERIAL"
+            'running_meter' => 'RUNNING_METERS', 
+        ]
+    ])->fetchAll();
+
     $entityTypeId = \CCrmOwnerType::Deal;
     $factory = Container::getInstance()->getFactory($entityTypeId);
-    $groupedTransactions = groupedDeal($aRCombinations);
-    foreach ($groupedTransactions as $value) {
+    $groupedTransactions = groupedDeal($data);
+    foreach ($data as $value) {
 
         $new_item = $factory->createItem([
             'TITLE' => $value['order1'] . '/' . $value['order2'],
@@ -66,7 +117,7 @@ function addDeal($aRCombinations): void
             'UF_CRM_1702558337821' => $value['combined_made'], //Штук на запуск СОВ
             'UF_CRM_1702558362582' => $value['main_left'], //Остается не сделано ОСН
             'UF_CRM_1702558368462' => $value['combined_left'], //Остается несделано СОВ
-            'UF_CRM_1675555129' => $value['running_meters'], //меры погонные заказа
+            'UF_CRM_1675555129' => $value['running_meter'], //меры погонные заказа
             'UF_CRM_1685005404730' => 1,
             'UF_CRM_1703658554' => $value['color']
         ]);
@@ -77,6 +128,7 @@ function addDeal($aRCombinations): void
         $res = $operation->launch();
     }
 }
+
 function rand_color()
 {
     return '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT);
@@ -157,7 +209,6 @@ function getUnfulfilledOrders($deals)
     }
     $arr = array_unique($arr);
     $filter = [
-        // "NOMER_VALUE" => $arr,
         "IBLOCK_ID" => 17,
         "!NOMER_VALUE" => $arr,
         "!TIP_UPAKOVKI_VALUE" => false, // тип изделия
@@ -193,7 +244,6 @@ function getUnfulfilledOrders($deals)
     $arAllOrder = getListOrder($filter);
     return $arAllOrder;
 }
-
 
 function updateListOrder($list)
 {
