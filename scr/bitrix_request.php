@@ -71,7 +71,7 @@ function createAddDealAgent(): void
     echo '</pre>'; */
 }
 
-function addDeal()
+/* function addDeal()
 {
     $data = QueueProductionLineTable::getList([
         'select' => [
@@ -99,6 +99,7 @@ function addDeal()
     $entityTypeId = \CCrmOwnerType::Deal;
     $factory = Container::getInstance()->getFactory($entityTypeId);
     $groupedTransactions = groupedDeal($data);
+    
     foreach ($data as $value) {
 
         $new_item = $factory->createItem([
@@ -127,7 +128,7 @@ function addDeal()
         $operation = $factory->getAddOperation($new_item, $context);
         $res = $operation->launch();
     }
-}
+} */
 
 function rand_color()
 {

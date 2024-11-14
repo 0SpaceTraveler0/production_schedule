@@ -8,6 +8,7 @@ use Bitrix\Main\Loader;
 use Production\Line\QueueProductionLineTable;
 use Production\Line\ProductionLineManager;
 
+Loader::includeModule('production.line');
 $width_conditions = [
     '1050' => 5,
     '840' => 8
@@ -97,7 +98,7 @@ function earlyPlanning($filter, $dealQueueFilter)
     }
 
     usort($resultAr, function ($a, $b) {
-        return ($b['withMaterial'] - $a['withMaterial']) // status ascending
+        return ($a['withMaterial'] - $b['withMaterial']) // status ascending
             ?: strcmp($a['material'], $b['material']) // start ascending
             ?: ($b['effectiveness'] - $a['effectiveness']) // mh descending
         ;
@@ -181,11 +182,9 @@ function app($filter, $dealQueueFilter)
         ]
     ]; 
     $arAllOrder = ProductionLineManager::getListOrder($filter);
-    // $arAllOrder = getListOrder($filter);
     $dealQueueFilter = [
         'STAGE_ID' => 'C9:NEW'
     ];
-    // $arUnfulfilledOrder = getUnfulfilledOrders(getDeal($filterForDeal));
     $deals = ProductionLineManager::getDeal($dealQueueFilter);
     $arrIdUnfulfilledOrders =
         array_filter(array_unique(array_merge(
@@ -232,7 +231,10 @@ function app($filter, $dealQueueFilter)
         die('Module not installed');
     }
 
-    foreach ($resultAr as $data) {
+
+    $groupedTransactions = ProductionLineManager::groupedDeal($resultAr);
+
+    foreach ($groupedTransactions as $data) {
 
         $dataToAdd = [
             'NAME_ORDER_MAIN' => $data['order1'],
@@ -246,6 +248,7 @@ function app($filter, $dealQueueFilter)
             'USED_MAIN_QUANTITY' => $data['main_made'],
             'PLAN_MAIN_QUANTITY' => $data['main_quantity_plain'],
             'RUNNING_METERS' => (float)$data['running_meters'],
+            'COLOR' => $data['color'],
         ];
 
         // Проверяем наличие данных для combined и добавляем только если они существуют
@@ -261,15 +264,15 @@ function app($filter, $dealQueueFilter)
 
         QueueProductionLineTable::add($dataToAdd);
     }
-    // createAddDealAgent(array_reverse($resultAr));
-    // createAddDealAgent();
-    addDeal();
+    ProductionLineManager::createAgentCreatingDeal();
+    
 }
 function countingTotalMileage(&$arrCombination)
 {
     $totalMileage = 0;
     foreach ($arrCombination as $value) {
         $totalMileage += $value['running_meters'];
+        
     }
     COption::SetOptionString('production.line', 'totalMileage', $totalMileage);
 }
@@ -554,7 +557,7 @@ function isInvalidOrder($arOrder, $value)
 
 function isMileageExceeded($totalMileage)
 {
-    return $totalMileage >= 30000;
+    return $totalMileage >= 15000;
 }
 
 function getRunningMeters($arOrder, $orderId, $countOrder)
